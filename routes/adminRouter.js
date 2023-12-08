@@ -1,29 +1,30 @@
-// const express = require('express');
+const express = require('express');
 
-// const adminRouter = express.Router();
-// const {
-//   adminPanel,
-//   users,
-//   updateUser,
-//   updateUsers,
-//   deleteUser,
-//   deleteUsers,
-// } = require('../controllers/adminController');
+const adminRouter = express.Router();
 
-// // Route for accessing the dashboard
-// adminRouter.get('/', adminPanel);
+const {
+  handleAdminPanel,
+  getUsers,
+  updateUser,
+  updateUsers,
+  deleteUser,
+  deleteUsers,
+} = require('../controllers/adminController');
 
-// // get all users
-// adminRouter.get('/users', users);
+// Route for accessing the admin panel
+adminRouter.get('/', handleAdminPanel);
 
-// // Route for updating user status (single  user)
-// adminRouter.patch('/update/:userId', updateUser);
+// get all users
+adminRouter.get('/users', getUsers);
 
-// // Route for updating multiple users status ( multiple users)
-// adminRouter.patch('/update', updateUsers);
-// // Route for delete a single user
-// adminRouter.delete('/delete/:userId', deleteUser);
-// // Route for delete multiple users
-// adminRouter.delete('/delete/', deleteUsers);
+// Route for updating user status (single  user)
+adminRouter.patch('/update/:userId', updateUser);
 
-// module.exports = adminRouter;
+// Route for updating multiple users status ( multiple users)
+adminRouter.patch('/update', updateUsers);
+// Route for delete a single user
+adminRouter.delete('/delete/:userId', deleteUser);
+// Route for delete multiple users
+adminRouter.delete('/delete/', deleteUsers);
+
+module.exports = adminRouter;
