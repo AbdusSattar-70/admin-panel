@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema(
     },
     lastLoginTime: {
       type: Date,
-      default: null,
+      default: '',
     },
     registrationTime: {
       type: Date,
@@ -31,10 +31,16 @@ const userSchema = new mongoose.Schema(
       enum: ['active', 'blocked'],
       default: 'active',
     },
-    role: {
+    roles: {
+      type: Object,
+      enum: { admin: 1000, user: 2000, editor: 3000 },
+      default: {
+        admin: 1000,
+      },
+    },
+    refreshToken: {
       type: String,
-      enum: ['admin', 'user'],
-      default: 'user',
+      default: '',
     },
   },
 );

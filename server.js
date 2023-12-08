@@ -1,17 +1,24 @@
 const express = require('express');
-const app = express();
+const { default: mongoose } = require('mongoose');
 const cors = require('cors');
+require('dotenv').config();
+const cookieParser = require('cookie-parser');
 const corsOptions = require('./config/corsOptions');
 const { logger } = require('./middleware/logEvents');
 const errorHandler = require('./middleware/errorHandler');
-const verifyJWT = require('./middleware/verifyJWT');
-const cookieParser = require('cookie-parser');
 const credentials = require('./middleware/credentials');
+const authRouter = require('./routes/authRouters');
+const adminRouter = require('./routes/adminRouter');
+const verifyJWT = require('./middleware/verifyJWT');
+const verifyRoles = require('./middleware/verifyRoles');
+const ROLES_LIST = require('./config/roles_list');
+
+const app = express();
+
 const PORT = process.env.PORT || 3500;
 
 // custom middleware logger
 app.use(logger);
-
 
 // database connection using mongoose
 const dbConnection = async () => {
@@ -22,6 +29,7 @@ const dbConnection = async () => {
     throw new Error(error);
   }
 };
+
 dbConnection();
 
 // Handle options credentials check - before CORS!
@@ -37,17 +45,15 @@ app.use(express.urlencoded({ extended: true }));
 // built-in middleware for json
 app.use(express.json());
 
-//middleware for cookies
-app.use(cookieParser());
+// middleware for cookies
+app.use(cookieParser(process.env.COOKIE_SECRET));
 
-// routes
-app.use('/register', require('./routes/register'));
-app.use('/auth', require('./routes/auth'));
-app.use('/refresh', require('./routes/refresh'));
-app.use('/logout', require('./routes/logout'));
+// routes for user signup,signin,signout,refreshToken
+app.use('/api/auth', authRouter);
 
-app.use(verifyJWT);
-app.use('/users', require('./routes/api/users'));
+// routes for secure admin panel to fetch users, access admin panel,update or delete users
+app.use(verifyJWT, verifyRoles(ROLES_LIST.Admin));
+app.use('/api/admin', adminRouter);
 
 app.use(errorHandler);
 
