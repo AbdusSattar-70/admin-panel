@@ -32,16 +32,14 @@ const userSchema = new mongoose.Schema(
       default: 'active',
     },
     roles: {
-      type: Object,
-      enum: { admin: 1000, user: 2000, editor: 3000 },
-      default: {
-        admin: 1000,
+      Admin: {
+        type: Number,
+        default: 1000,
       },
+      Editor: Number,
+      User: Number,
     },
-    refreshToken: {
-      type: String,
-      default: '',
-    },
+    refreshToken: [String],
   },
 );
 

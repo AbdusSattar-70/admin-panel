@@ -1,39 +1,89 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-underscore-dangle */
+// loginController.js
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-require('dotenv').config();
 const User = require('../models/User.model');
-const { generateJWTToken, sendResponse } = require('../utils/commonMethod');
+const { sendResponse } = require('../utils/commonMethod');
+const { USER_STATUS, TOKEN_CONFIG } = require('../config/token&CommonVar');
+const { setCookie, clearPreviousRefreshTokens } = require('../utils/commonMethod');
+
+const MESSAGES = {
+  INVALID_CREDENTIALS: 'Invalid credentials',
+  GENERIC_ERROR: 'Error occurred',
+  REQUIRED_EMAIL_PASS: 'Username and password are required.',
+  SUCCESS: 'Successfully signed in',
+};
+
+const generateAccessToken = (userInfo) => jwt.sign({ userInfo }, TOKEN_CONFIG.ACCESS_TOKEN_SECRET, {
+  expiresIn: TOKEN_CONFIG.ACCESS_TOKEN_EXPIRY,
+});
+
+const generateRefreshToken = (id) => jwt.sign({ id }, TOKEN_CONFIG.REFRESH_TOKEN_SECRET, {
+  expiresIn: TOKEN_CONFIG.REFRESH_TOKEN_EXPIRY,
+});
+
+const checkBlockedUser = (foundUser) => {
+  if (!foundUser || foundUser.status === USER_STATUS.Blocked) {
+    throw new Error(MESSAGES.INVALID_CREDENTIALS);
+  }
+};
+
+const authenticateUser = async (email, password) => {
+  try {
+    const foundUser = await User.findOne({ email });
+    checkBlockedUser(foundUser);
+
+    const match = await bcrypt.compare(password, foundUser.password);
+    if (!match) {
+      throw new Error(MESSAGES.INVALID_CREDENTIALS);
+    }
+
+    return foundUser;
+  } catch (error) {
+    throw new Error(MESSAGES.GENERIC_ERROR);
+  }
+};
+
+const generateTokensAndSetCookies = async (foundUser, res) => {
+  try {
+    const { cookies } = res;
+    const roles = Object.values(foundUser.roles).filter(Boolean);
+
+    const accessToken = generateAccessToken({
+      id: foundUser._id,
+      roles,
+    });
+
+    const newRefreshToken = generateRefreshToken(foundUser._id);
+
+    await clearPreviousRefreshTokens(cookies, foundUser, res);
+
+    foundUser.refreshToken.push(newRefreshToken);
+    foundUser.lastLoginTime = new Date();
+    await foundUser.save();
+
+    setCookie(res, newRefreshToken);
+
+    return { accessToken, roles };
+  } catch (error) {
+    throw new Error(MESSAGES.GENERIC_ERROR);
+  }
+};
 
 const handleLogin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return sendResponse(res, 400, 'Username and password are required.');
+    if (!email || !password) return sendResponse(res, 400, MESSAGES.REQUIRED_EMAIL_PASS);
 
-    const foundUser = await User.findOne({ email });
-    if (!foundUser) return sendResponse(res, 401, 'Invalid credentials');
-    if (foundUser.status === 'blocked') return sendResponse(res, 401, 'You were blocked by admin');
-
-    const match = await bcrypt.compare(password, foundUser.password);
-    if (!match) return sendResponse(res, 401, 'Invalid credentials');
-
-    const roles = Object.values(foundUser.roles);
-    const accessToken = generateJWTToken(foundUser._id, roles, 'access');
-    const refreshToken = generateJWTToken(foundUser._id, roles, 'refresh');
+    const foundUser = await authenticateUser(email, password);
+    const tokensAndRoles = await generateTokensAndSetCookies(foundUser, res);
 
     const {
       password: pass, refreshToken: reToken, role, ...restInfo
     } = foundUser._doc;
-    // update and save last login time and refresh token in db
-    foundUser.set({ lastLoginTime: new Date(), refreshToken });
-    await foundUser.save();
-    res.cookie(process.env.COOKIE_SECRET, refreshToken, {
-      httpOnly: true,
-      sameSite: 'None',
-      maxAge: process.env.COOKIE_MAX_AGE,
-    });
 
-    return sendResponse(res, 201, 'Successfully signed in', { ...restInfo, accessToken });
+    return sendResponse(res, 201, MESSAGES.SUCCESS, { ...restInfo, ...tokensAndRoles });
   } catch (error) {
     next(error);
   }

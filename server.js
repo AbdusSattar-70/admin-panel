@@ -1,8 +1,9 @@
 const express = require('express');
-const { default: mongoose } = require('mongoose');
 const cors = require('cors');
+const mongoose = require('mongoose');
 require('dotenv').config();
 const cookieParser = require('cookie-parser');
+const connectDb = require('./config/connectDb');
 const corsOptions = require('./config/corsOptions');
 const { logger } = require('./middleware/logEvents');
 const errorHandler = require('./middleware/errorHandler');
@@ -11,7 +12,7 @@ const authRouter = require('./routes/authRouters');
 const adminRouter = require('./routes/adminRouter');
 const verifyJWT = require('./middleware/verifyJWT');
 const verifyRoles = require('./middleware/verifyRoles');
-const ROLES_LIST = require('./config/roles_list');
+const { ROLES_LIST } = require('./config/token&CommonVar');
 
 const app = express();
 
@@ -21,16 +22,7 @@ const PORT = process.env.PORT || 3500;
 app.use(logger);
 
 // database connection using mongoose
-const dbConnection = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log('database connected successfully');
-  } catch (error) {
-    throw new Error(error);
-  }
-};
-
-dbConnection();
+connectDb();
 
 // Handle options credentials check - before CORS!
 // and fetch cookies credentials requirement
@@ -55,6 +47,10 @@ app.use('/api/auth', authRouter);
 app.use(verifyJWT, verifyRoles(ROLES_LIST.Admin));
 app.use('/api/admin', adminRouter);
 
+// default errror handler
 app.use(errorHandler);
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+mongoose.connection.once('open', () => {
+  console.log('Connected to MongoDB');
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+});

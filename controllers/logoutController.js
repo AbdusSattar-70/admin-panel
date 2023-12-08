@@ -1,27 +1,27 @@
 /* eslint-disable consistent-return */
+// logoutController.js
 const User = require('../models/User.model');
+const { TOKEN_CONFIG } = require('../config/token&CommonVar');
+const { clearRefreshToken } = require('../utils/commonMethod');
 require('dotenv').config();
 
 const handleLogout = async (req, res, next) => {
-  // On client, also delete the accessToken
   try {
     const { cookies } = req;
-    if (!cookies?.cookie_access) return res.sendStatus(204); // No content
-    const refreshToken = cookies.cookie_access;
+    if (!cookies?.TOKEN_CONFIG.COOKIE_SECRET) return res.sendStatus(204);
 
-    // Is refreshToken in db?
-    const foundUser = await User.findOne({ refreshToken });
+    const refreshToken = cookies.TOKEN_CONFIG.COOKIE_SECRET;
+    const foundUser = await User.findOne({ refreshToken }).exec();
 
     if (!foundUser) {
-      res.clearCookie(process.env.COOKIE_SECRET, { httpOnly: true, sameSite: 'None', secure: true });
+      clearRefreshToken(res, TOKEN_CONFIG.COOKIE_SECRET);
       return res.sendStatus(204);
     }
 
-    // Delete refreshToken in db
-    foundUser.refreshToken = '';
+    foundUser.refreshToken = foundUser.refreshToken.filter((rt) => rt !== refreshToken);
     await foundUser.save();
 
-    res.clearCookie(process.env.COOKIE_SECRET, { httpOnly: true, sameSite: 'None', secure: true });
+    clearRefreshToken(res, TOKEN_CONFIG.COOKIE_SECRET);
     res.sendStatus(204);
   } catch (error) {
     next(error);
