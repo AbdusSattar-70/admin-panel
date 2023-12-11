@@ -1,13 +1,5 @@
-const ROLES_LIST = {
-  Admin: 1000,
-  User: 2000,
-  Editor: 3000,
-};
+require('dotenv').config();
 
-const TOKEN_NAME = {
-  Access: 1000,
-  Refresh: 2000,
-};
 const USER_STATUS = {
   Blocked: 'blocked',
   Active: 'active',
@@ -23,5 +15,5 @@ const TOKEN_CONFIG = {
 };
 
 module.exports = {
-  ROLES_LIST, TOKEN_NAME, USER_STATUS, TOKEN_CONFIG,
+  USER_STATUS, TOKEN_CONFIG,
 };

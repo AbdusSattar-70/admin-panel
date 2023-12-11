@@ -11,8 +11,6 @@ const credentials = require('./middleware/credentials');
 const authRouter = require('./routes/authRouters');
 const adminRouter = require('./routes/adminRouter');
 const verifyJWT = require('./middleware/verifyJWT');
-const verifyRoles = require('./middleware/verifyRoles');
-const { ROLES_LIST } = require('./config/token&CommonVar');
 
 const app = express();
 
@@ -44,7 +42,7 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use('/api/auth', authRouter);
 
 // routes for secure admin panel to fetch users, access admin panel,update or delete users
-app.use(verifyJWT, verifyRoles(ROLES_LIST.Admin));
+app.use(verifyJWT);
 app.use('/api/admin', adminRouter);
 
 // default errror handler

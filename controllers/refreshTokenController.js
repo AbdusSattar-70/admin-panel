@@ -42,12 +42,12 @@ const handleRefreshToken = async (req, res, next) => {
         if (err || foundUser._id !== decoded.id) return res.sendStatus(403);
 
         // Refresh token was still valid
-        const roles = Object.values(foundUser.roles);
+        const { status, _id: id } = foundUser;
         const accessToken = jwt.sign(
           {
             userInfo: {
-              id: decoded.id,
-              roles,
+              id,
+              status,
             },
           },
           process.env.ACCESS_TOKEN_SECRET,
@@ -55,7 +55,7 @@ const handleRefreshToken = async (req, res, next) => {
         );
 
         const newRefreshToken = jwt.sign(
-          { id: foundUser._id },
+          { id },
           process.env.REFRESH_TOKEN_SECRET,
           { expiresIn: process.env.REFRESH_TOKEN_EXPIRY },
         );
@@ -68,7 +68,7 @@ const handleRefreshToken = async (req, res, next) => {
           httpOnly: true, secure: true, sameSite: 'None', maxAge: process.env.COOKIE_MAX_AGE,
         });
 
-        res.json({ roles, accessToken });
+        res.json({ id, status, accessToken });
       },
     );
   } catch (error) {

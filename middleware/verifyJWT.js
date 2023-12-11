@@ -11,9 +11,8 @@ const verifyJWT = async (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
     const decoded = await verifyAccessToken(token, TOKEN_CONFIG.ACCESS_TOKEN_SECRET);
-
     req.user = decoded.userInfo.id;
-    req.roles = decoded.userInfo.roles;
+    req.userStatus = decoded.userInfo.status;
 
     next();
   } catch (error) {

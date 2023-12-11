@@ -8,9 +8,9 @@ require('dotenv').config();
 const handleLogout = async (req, res, next) => {
   try {
     const { cookies } = req;
-    if (!cookies?.TOKEN_CONFIG.COOKIE_SECRET) return res.sendStatus(204);
+    if (!cookies?.cookie_access) return res.sendStatus(204);
 
-    const refreshToken = cookies.TOKEN_CONFIG.COOKIE_SECRET;
+    const refreshToken = cookies.cookie_access;
     const foundUser = await User.findOne({ refreshToken }).exec();
 
     if (!foundUser) {

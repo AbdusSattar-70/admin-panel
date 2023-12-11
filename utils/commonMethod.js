@@ -20,22 +20,31 @@ const sendResponse = (res, status, message, data = null) => res.status(status).j
   data,
 });
 
-const toggleUserStatus = async (userId) => {
+const handleUserStatusblock = async (userId) => {
   try {
     const foundUser = await User.findById(userId);
     if (!foundUser) {
       throw new Error('User not found');
     }
 
-    // Toggle between 'blocked' and 'active'
-    const newStatus = foundUser.status === USER_STATUS.Blocked
-      ? USER_STATUS.Active : USER_STATUS.Blocked;
-
-    await User.findByIdAndUpdate(userId, { status: newStatus });
+    await User.findByIdAndUpdate(userId, { status: USER_STATUS.Blocked });
   } catch (err) {
     throw new Error(err);
   }
 };
+const handleUserStatusUnblock = async (userId) => {
+  try {
+    const foundUser = await User.findById(userId);
+    if (!foundUser) {
+      throw new Error('User not found');
+    }
+
+    await User.findByIdAndUpdate(userId, { status: USER_STATUS.Active });
+  } catch (err) {
+    throw new Error(err);
+  }
+};
+
 const verifyAccessToken = (token, secret) => new Promise((resolve, reject) => {
   jwt.verify(token, secret, (err, decoded) => {
     if (err) {
@@ -95,7 +104,8 @@ module.exports = {
   hashPassword,
   createNewUser,
   sendResponse,
-  toggleUserStatus,
+  handleUserStatusUnblock,
+  handleUserStatusblock,
   verifyRefreshToken,
   clearRefreshToken,
   setCookie,

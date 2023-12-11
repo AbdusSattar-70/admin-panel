@@ -48,14 +48,13 @@ const authenticateUser = async (email, password) => {
 const generateTokensAndSetCookies = async (foundUser, res) => {
   try {
     const { cookies } = res;
-    const roles = Object.values(foundUser.roles).filter(Boolean);
-
+    const { status, _id: id } = foundUser;
     const accessToken = generateAccessToken({
-      id: foundUser._id,
-      roles,
+      id,
+      status,
     });
 
-    const newRefreshToken = generateRefreshToken(foundUser._id);
+    const newRefreshToken = generateRefreshToken(id);
 
     await clearPreviousRefreshTokens(cookies, foundUser, res);
 
@@ -65,7 +64,7 @@ const generateTokensAndSetCookies = async (foundUser, res) => {
 
     setCookie(res, newRefreshToken);
 
-    return { accessToken, roles };
+    return { accessToken, status, id };
   } catch (error) {
     throw new Error(MESSAGES.GENERIC_ERROR);
   }
@@ -77,13 +76,9 @@ const handleLogin = async (req, res, next) => {
     if (!email || !password) return sendResponse(res, 400, MESSAGES.REQUIRED_EMAIL_PASS);
 
     const foundUser = await authenticateUser(email, password);
-    const tokensAndRoles = await generateTokensAndSetCookies(foundUser, res);
+    const accessToken = await generateTokensAndSetCookies(foundUser, res);
 
-    const {
-      password: pass, refreshToken: reToken, role, ...restInfo
-    } = foundUser._doc;
-
-    return sendResponse(res, 201, MESSAGES.SUCCESS, { ...restInfo, ...tokensAndRoles });
+    return sendResponse(res, 201, MESSAGES.SUCCESS, accessToken);
   } catch (error) {
     next(error);
   }

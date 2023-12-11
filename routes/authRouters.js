@@ -6,8 +6,6 @@ const handleRefreshToken = require('../controllers/refreshTokenController');
 const handleLogout = require('../controllers/logoutController');
 
 const router = express.Router();
-// router.post('/google', google);
-router.post('/liveValidate', addUserValidators, addUserValidationHandler);
 router.post('/signup', addUserValidators, addUserValidationHandler, handleSignup);
 router.post('/signin', handleLogin);
 router.get('/refresh', handleRefreshToken);

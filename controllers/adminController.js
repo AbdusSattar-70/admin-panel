@@ -1,7 +1,9 @@
 /* eslint-disable consistent-return */
 const { USER_STATUS } = require('../config/token&CommonVar');
 const User = require('../models/User.model');
-const { sendResponse, toggleUserStatus } = require('../utils/commonMethod');
+const {
+  sendResponse, handleUserStatusblock, handleUserStatusUnblock,
+} = require('../utils/commonMethod');
 
 const handleAdminPanel = async (req, res, next) => {
   try {
@@ -37,26 +39,7 @@ const getUsers = async (req, res, next) => {
   }
 };
 
-const updateUser = async (req, res, next) => {
-  try {
-    if (!req?.params?.userId) {
-      return sendResponse(res, 400, 'User ID required');
-    }
-
-    const { userId } = req.params;
-
-    try {
-      await toggleUserStatus(userId);
-      return sendResponse(res, 200, 'User status toggled successfully');
-    } catch (dbError) {
-      sendResponse(res, 400, String(dbError));
-    }
-  } catch (err) {
-    next(err);
-  }
-};
-
-const updateUsers = async (req, res, next) => {
+const updateUsersBlock = async (req, res, next) => {
   try {
     if (!req?.body?.userIds) {
       return sendResponse(res, 400, 'User IDs required');
@@ -66,8 +49,27 @@ const updateUsers = async (req, res, next) => {
 
     try {
       // parallelize the asynchronous operations
-      await Promise.all(userIds.map((userId) => toggleUserStatus(userId)));
-      return sendResponse(res, 200, 'Users status toggled successfully');
+      await Promise.all(userIds.map((userId) => handleUserStatusblock(userId)));
+      return sendResponse(res, 200, 'status blocked successfully');
+    } catch (dbError) {
+      sendResponse(res, 400, String(dbError));
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+const updateUsersUnblock = async (req, res, next) => {
+  try {
+    if (!req?.body?.userIds) {
+      return sendResponse(res, 400, 'User IDs required');
+    }
+
+    const { userIds } = req.body;
+
+    try {
+      // parallelize the asynchronous operations
+      await Promise.all(userIds.map((userId) => handleUserStatusUnblock(userId)));
+      return sendResponse(res, 200, 'Users status active success');
     } catch (dbError) {
       sendResponse(res, 400, String(dbError));
     }
@@ -107,11 +109,7 @@ const deleteUsers = async (req, res, next) => {
     }
 
     const { userIds } = req.body;
-    const result = await User.deleteMany({ _id: { $in: userIds } });
-
-    if (!result.n) {
-      return sendResponse(res, 404, 'User IDs not found');
-    }
+    await User.deleteMany({ _id: { $in: userIds } });
 
     return sendResponse(res, 200, 'Users deleted successfully');
   } catch (err) {
@@ -122,8 +120,8 @@ const deleteUsers = async (req, res, next) => {
 module.exports = {
   handleAdminPanel,
   getUsers,
-  updateUser,
-  updateUsers,
+  updateUsersBlock,
+  updateUsersUnblock,
   deleteUser,
   deleteUsers,
 };
