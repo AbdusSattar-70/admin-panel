@@ -3,16 +3,12 @@ const express = require('express');
 const adminRouter = express.Router();
 
 const {
-  handleAdminPanel,
   getUsers,
   deleteUser,
   deleteUsers,
   updateUsersBlock,
   updateUsersUnblock,
 } = require('../controllers/adminController');
-
-// Route for accessing the admin panel
-adminRouter.get('/', handleAdminPanel);
 
 // get all users
 adminRouter.get('/users', getUsers);

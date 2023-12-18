@@ -1,29 +1,8 @@
 /* eslint-disable consistent-return */
-const { USER_STATUS } = require('../config/token&CommonVar');
 const User = require('../models/User.model');
 const {
   sendResponse, handleUserStatusblock, handleUserStatusUnblock,
 } = require('../utils/commonMethod');
-
-const handleAdminPanel = async (req, res, next) => {
-  try {
-    // check user id from jwt
-    const userId = req?.user;
-    const validUser = await User.findOne({ _id: userId });
-
-    if (!validUser) {
-      return sendResponse(res, 404, 'User not found');
-    }
-
-    if (validUser.status === USER_STATUS.Blocked) {
-      return sendResponse(res, 404, 'Blocked by Admin');
-    }
-
-    return sendResponse(res, 200, 'Admin Panel accessed successfully');
-  } catch (err) {
-    next(err);
-  }
-};
 
 const getUsers = async (req, res, next) => {
   try {
@@ -58,6 +37,7 @@ const updateUsersBlock = async (req, res, next) => {
     next(err);
   }
 };
+
 const updateUsersUnblock = async (req, res, next) => {
   try {
     if (!req?.body?.userIds) {
@@ -118,7 +98,6 @@ const deleteUsers = async (req, res, next) => {
 };
 
 module.exports = {
-  handleAdminPanel,
   getUsers,
   updateUsersBlock,
   updateUsersUnblock,

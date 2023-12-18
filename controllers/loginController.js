@@ -13,6 +13,7 @@ const MESSAGES = {
   GENERIC_ERROR: 'Error occurred',
   REQUIRED_EMAIL_PASS: 'Username and password are required.',
   SUCCESS: 'Successfully signed in',
+  BLOCKED: 'Your were Blocked By Admin',
 };
 
 const generateAccessToken = (userInfo) => jwt.sign({ userInfo }, TOKEN_CONFIG.ACCESS_TOKEN_SECRET, {
@@ -25,23 +26,26 @@ const generateRefreshToken = (id) => jwt.sign({ id }, TOKEN_CONFIG.REFRESH_TOKEN
 
 const checkBlockedUser = (foundUser) => {
   if (!foundUser || foundUser.status === USER_STATUS.Blocked) {
-    throw new Error(MESSAGES.INVALID_CREDENTIALS);
+    return false;
   }
+  return true;
 };
 
 const authenticateUser = async (email, password) => {
   try {
     const foundUser = await User.findOne({ email });
-    checkBlockedUser(foundUser);
+    if (!checkBlockedUser(foundUser)) {
+      return { error: MESSAGES.BLOCKED };
+    }
 
     const match = await bcrypt.compare(password, foundUser.password);
     if (!match) {
-      throw new Error(MESSAGES.INVALID_CREDENTIALS);
+      return { error: MESSAGES.INVALID_CREDENTIALS };
     }
 
-    return foundUser;
+    return { user: foundUser };
   } catch (error) {
-    throw new Error(MESSAGES.GENERIC_ERROR);
+    return { error: MESSAGES.GENERIC_ERROR };
   }
 };
 
@@ -66,21 +70,30 @@ const generateTokensAndSetCookies = async (foundUser, res) => {
 
     return { accessToken, status, id };
   } catch (error) {
-    throw new Error(MESSAGES.GENERIC_ERROR);
+    sendResponse(res, 500, MESSAGES.GENERIC_ERROR);
+    return null;
   }
 };
 
-const handleLogin = async (req, res, next) => {
+const handleLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return sendResponse(res, 400, MESSAGES.REQUIRED_EMAIL_PASS);
+    if (!email || !password) {
+      sendResponse(res, 404, MESSAGES.REQUIRED_EMAIL_PASS);
+      return;
+    }
 
-    const foundUser = await authenticateUser(email, password);
-    const accessToken = await generateTokensAndSetCookies(foundUser, res);
+    const authResult = await authenticateUser(email, password);
 
-    return sendResponse(res, 201, MESSAGES.SUCCESS, accessToken);
+    if (authResult.error) {
+      sendResponse(res, 400, authResult.error);
+      return;
+    }
+
+    const accessToken = await generateTokensAndSetCookies(authResult.user, res);
+    sendResponse(res, 201, MESSAGES.SUCCESS, accessToken);
   } catch (error) {
-    next(error);
+    sendResponse(res, 500, MESSAGES.GENERIC_ERROR);
   }
 };
 
